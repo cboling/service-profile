@@ -1,2 +1,5 @@
 SERVICE_DIR=../../xos_services
 XOS_DIR=../../xos
+
+#XOS_GITHUB=https://gerrit.opencord.org/p/xos.git
+XOS_GITHUB=https://github.com/cboling/xos.git

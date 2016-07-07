@@ -37,5 +37,6 @@ docker:
 endif
 
 /usr/local/bin/docker-compose:
-	sudo bash -c "curl -L https://github.com/docker/compose/releases/download/1.5.2/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose"
+    # Note: ADTN -> Increased docker compose from 1.5.2 to 1.7.1 so we can use docker compose format 2
+	sudo bash -c "curl -L https://github.com/docker/compose/releases/download/1.7.1/docker-compose-`uname -s`-`uname -m` > /usr/local/bin/docker-compose"
 	sudo chmod +x /usr/local/bin/docker-compose

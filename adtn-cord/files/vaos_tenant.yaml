@@ -1,0 +1,21 @@
+# vAOS Tenant Jinja 2 parameters file
+#
+vdus:
+  vdu1:
+    param:
+      vm_image:     "{{ vm_image-firewall }}"
+      management:   "{{ management }}"
+      lan_network:  "{{ lan_network }}"
+      lan_cidr:     "{{ lan_cidr }}"
+      lan_gateway_ip:
+        - "{{ lan_gateway_ip }}"
+
+      wan_network:  "{{ wan_network }}"
+
+      # The following provide the Compute/Disk resources for RADIUS.  Currently
+      # should be plenty for a single OLT with one or two active PONS worth of
+      # customers
+
+      num_cpus:  1
+      mem_size:  1 GB
+      disk_size: 1 GB

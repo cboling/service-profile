@@ -1,0 +1,237 @@
+###################################################################################
+version: '2'
+###################################################################################
+services:
+  xos_db:
+    build: ../../../containers/postgresql
+    image: adtran/xos-postgres
+    #container_name: postgresql
+    expose:
+        - "5432"
+
+###################################################################################
+# The original xos_db target is commented out below. It pulls a pre-built image
+# down and we may want to build our own until we are sure it is not going to change
+# on us.
+#
+#  xos_db:
+#    image: xosproject/xos-postgres
+#    expose:
+#        - "5432"
+###################################################################################
+
+  xos:
+    command: python /opt/xos/manage.py runserver 0.0.0.0:${XOS_PORT} --insecure --makemigrations
+    build: ../../../containers/xos
+    image: adtran/xos
+    #container_name: xos
+    # Uncomment the next to build the development version
+    #dockerfile: Dockerfile.devel
+    depends_on:
+        - xos_db
+    links:
+        - xos_db
+    ports:
+        - "80:80"
+        - "8000:8000"
+    volumes:
+        - .:/root/setup:ro
+        - ../common/xos_common_config:/opt/xos/xos_configuration/xos_common_config:ro
+        - ./xos_cord_config:/opt/xos/xos_configuration/xos_cord_config:ro
+        - ../vtn/files/xos_vtn_config:/opt/xos/xos_configuration/xos_vtn_config:ro
+        - ./id_rsa.pub:/opt/xos/synchronizers/onos/onos_key.pub:ro
+        - ./id_rsa.pub:/opt/xos/synchronizers/vcpe/vcpe_public_key:ro
+        - ./id_rsa.pub:/opt/xos/synchronizers/monitoring_channel/monitoring_channel_public_key:ro
+        - ./id_rsa.pub:/opt/xos/synchronizers/vaosservice/vaosservice_public_key:ro
+        #
+        # NOTE: Since most TOSCA files ran are against the XOS service, make sure all the public keys
+        #       that may be referenced in you services/tenant TOSCA files are added above
+        #
+    logging:
+      driver: "json-file"
+      options:
+            max-size: "100k"
+            max-file: "5"
+
+###################################################################################
+# Original xos below
+#  xos:
+#    command: python /opt/xos/manage.py runserver 0.0.0.0:80 --insecure --makemigrations
+#    image: xosproject/xos
+#    links:
+#        - xos_db
+#    ports:
+#        - "80:80"
+#    volumes:
+#        - .:/root/setup:ro
+#        - ../common/xos_common_config:/opt/xos/xos_configuration/xos_common_config:ro
+#        - ./xos_cord_config:/opt/xos/xos_configuration/xos_cord_config:ro
+##        - ../vtn/files/xos_vtn_config:/opt/xos/xos_configuration/xos_vtn_config:ro
+##        - ./id_rsa.pub:/opt/xos/synchronizers/onos/onos_key.pub:ro
+##        - ./id_rsa.pub:/opt/xos/synchronizers/vcpe/vcpe_public_key:ro
+##        - ./id_rsa.pub:/opt/xos/synchronizers/monitoring_channel/monitoring_channel_public_key:ro
+
+  xos_synchronizer_openstack:
+    command: bash -c "sleep 120; python /opt/xos/synchronizers/openstack/xos-synchronizer.py"
+    build: ../../../containers/synchronizer
+    image: adtran/xos-synchronizer-openstack
+    #container_name: xos_synchronizer_openstack
+    depends_on:
+        - xos
+        - xos_db
+    labels:
+        com.adtran.kind: synchronizer
+        com.adtran.target: openstack
+    links:
+        - xos_db
+    volumes:
+        - ../common/xos_common_config:/opt/xos/xos_configuration/xos_common_config:ro
+        - ./xos_cord_config:/opt/xos/xos_configuration/xos_cord_config:ro
+        - .:/root/setup:ro
+        - ./images:/opt/xos/images:ro
+        - ../vtn/files/xos_vtn_config:/opt/xos/xos_configuration/xos_vtn_config:ro
+    logging:
+      driver: "json-file"
+      options:
+            max-size: "100k"
+            max-file: "5"
+
+###################################################################################
+# The original xos_synchronizer_openstack is below
+#  xos_synchronizer_openstack:
+#    command: bash -c "sleep 120; python /opt/xos/synchronizers/openstack/xos-synchronizer.py"
+#    image: xosproject/xos-synchronizer-openstack
+#    labels:
+#        org.xosproject.kind: synchronizer
+#        org.xosproject.target: openstack
+#    links:
+#        - xos_db
+#    volumes:
+#        - ../common/xos_common_config:/opt/xos/xos_configuration/xos_common_config:ro
+#        - ./xos_cord_config:/opt/xos/xos_configuration/xos_cord_config:ro
+#        - .:/root/setup:ro
+#        - ./images:/opt/xos/images:ro
+#        - ../vtn/files/xos_vtn_config:/opt/xos/xos_configuration/xos_vtn_config:ro
+#
+###################################################################################
+
+  xos_synchronizer_vaos:
+    command: bash -c "sleep 120; python /opt/xos/synchronizers/vaosservice/vaos-synchronizer.py"
+    #build: ../../../containers/synchronizer
+    image: adtran/xos-synchronizer-openstack
+    #container_name: xos_synchronizer_vaos
+    depends_on:
+        - xos
+        - xos_db
+        - xos_synchronizer_openstack
+    labels:
+        com.adtran.kind: synchronizer
+        com.adtran.target: vaosservice
+    links:
+        - xos_db
+    volumes:
+        - .:/root/setup:ro
+        - ../common/xos_common_config:/opt/xos/xos_configuration/xos_common_config:ro
+        - ./id_rsa:/opt/xos/synchronizers/vaosservice/vaosservice_private_key:ro
+        - ./id_rsa.pub:/opt/xos/synchronizers/vaosservice/vaosservice_public_key:ro
+        - ./files/vaos_vnfd_template.yaml:/opt/xos/services/vaosservice/vaos_vnfd_template.yaml:ro
+        - ./files/vaos_tenant.yaml:/opt/xos/synchronizers/vaosservice/steps/vaos_tenant.yaml:ro
+
+    logging:
+      driver: "json-file"
+      options:
+            max-size: "100k"
+            max-file: "5"
+
+###################################################################################
+#xos_synchronizer_onos:
+#    image: xosproject/xos-synchronizer-openstack
+#    command: bash -c "python /opt/xos/synchronizers/onos/onos-synchronizer.py -C /opt/xos/synchronizers/onos/onos_synchronizer_config"
+#    labels:
+#        org.xosproject.kind: synchronizer
+#        org.xosproject.target: onos
+#    links:
+#        - xos_db
+#    volumes:
+#        - .:/root/setup:ro
+#        - ./id_rsa:/opt/xos/synchronizers/onos/onos_key:ro  # private key
+#    log_driver: "json-file"
+#    log_opt:
+#            max-size: "100k"
+#            max-file: "5"
+#
+#xos_synchronizer_vcpe:
+#    image: xosproject/xos-synchronizer-openstack
+#    command: bash -c "sleep 120; cp /root/setup/node_key /opt/xos/synchronizers/vcpe/; chmod 0600 /opt/xos/synchronizers/vcpe/node_key; python /opt/xos/synchronizers/vcpe/vcpe-synchronizer.py -C /root/setup/files/vcpe_synchronizer_config"
+#    labels:
+#        org.xosproject.kind: synchronizer
+#        org.xosproject.target: vcpe
+#    links:
+#        - xos_db
+#    volumes:
+#        - .:/root/setup:ro
+#        - ./id_rsa:/opt/xos/synchronizers/vcpe/vcpe_private_key:ro  # private key
+#    log_driver: "json-file"
+#    log_opt:
+#            max-size: "100k"
+#            max-file: "5"
+#
+#xos_synchronizer_vtn:
+#    image: xosproject/xos-synchronizer-openstack
+#    command: bash -c "sleep 120; python /opt/xos/synchronizers/vtn/vtn-synchronizer.py -C /opt/xos/synchronizers/vtn/vtn_synchronizer_config"
+#    labels:
+#        org.xosproject.kind: synchronizer
+#        org.xosproject.target: vtn
+#    links:
+#        - xos_db
+#    volumes:
+#        - .:/root/setup:ro
+#    log_driver: "json-file"
+#    log_opt:
+#            max-size: "100k"
+#            max-file: "5"
+#
+#xos_synchronizer_vbng:
+#    image: xosproject/xos-synchronizer-openstack
+#    command: bash -c "sleep 120; python /opt/xos/synchronizers/vbng/vbng-synchronizer.py -C /opt/xos/synchronizers/vbng/vbng_synchronizer_config"
+#    labels:
+#        org.xosproject.kind: synchronizer
+#        org.xosproject.target: vbng
+#    links:
+#        - xos_db
+#    log_driver: "json-file"
+#    log_opt:
+#            max-size: "100k"
+#            max-file: "5"
+#
+#xos_synchronizer_monitoring_channel:
+#    image: xosproject/xos-synchronizer-openstack
+#    command: bash -c "sleep 120; python /opt/xos/synchronizers/monitoring_channel/monitoring_channel_synchronizer.py -C /root/setup/files/monitoring_channel_synchronizer_config"
+#    labels:
+#        org.xosproject.kind: synchronizer
+#        org.xosproject.target: monitoring_channel
+#    links:
+#        - xos_db
+#    volumes:
+#        - .:/root/setup:ro
+#        - ./id_rsa:/opt/xos/synchronizers/monitoring_channel/monitoring_channel_private_key:ro  # private key
+#    log_driver: "json-file"
+#    log_opt:
+#            max-size: "100k"
+#            max-file: "5"
+#
+#xos_synchronizer_vtr:
+#    image: xosproject/xos-synchronizer-openstack
+#    command: bash -c "sleep 120; cp /root/setup/node_key /opt/xos/synchronizers/vtr/; chmod 0600 /opt/xos/synchronizers/vtr/node_key; python /opt/xos/synchronizers/vtr/vtr-synchronizer.py -C /root/setup/files/vtr_synchronizer_config"
+#    labels:
+#        org.xosproject.kind: synchronizer
+#        org.xosproject.target: vtr
+#    links:
+#        - xos_db
+#    volumes:
+#        - .:/root/setup:ro
+#        - ./id_rsa:/opt/xos/synchronizers/vtr/vcpe_private_key:ro  # private key
+#    log_driver: "json-file"
+#    log_opt:
+#            max-size: "100k"
+#            max-file: "5"

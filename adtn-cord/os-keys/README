@@ -1,0 +1,2 @@
+This file holds public/private keys for various OpenStack sites. Copy the ones you want to use up
+one directory and drop the 'site-' prefix

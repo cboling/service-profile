@@ -1,14 +1,11 @@
 include ../common/Makedefs
 
-services: $(SERVICE_DIR) \
-          $(SERVICE_DIR)/exampleservice \
-          $(SERVICE_DIR)/olt \
-	  $(SERVICE_DIR)/vsg \
-          $(SERVICE_DIR)/vtn \
-	  $(SERVICE_DIR)/vrouter \
-	  $(SERVICE_DIR)/vtr \
-	  $(SERVICE_DIR)/onos-service \
-	  $(SERVICE_DIR)/fabric
+CORD_SERVICES=$(SERVICE_DIR)/exampleservice $(SERVICE_DIR)/olt $(SERVICE_DIR)/vsg $(SERVICE_DIR)/vtn \
+              $(SERVICE_DIR)/vrouter $(SERVICE_DIR)/vtr $(SERVICE_DIR)/onos-service $(SERVICE_DIR)/fabric
+
+# TODO: Add in vaos-service to the list above
+
+services: $(SERVICE_DIR) $(CORD_SERVICES)
 
 monitoring_services: $(SERVICE_DIR)/monitoring
 
@@ -44,6 +41,9 @@ $(SERVICE_DIR)/fabric:
 $(SERVICE_DIR)/monitoring:
 	git -C $(SERVICE_DIR) clone https://gerrit.opencord.org/p/monitoring.git
 
+$(SERVICE_DIR)/vaos-service:
+	git -C $(SERVICE_DIR) clone https://github.com/cboling/vaos-service.git
+
 cleanup:
 	rm -rf $(SERVICE_DIR)/*
 
@@ -56,9 +56,10 @@ update:
 	git -C $(SERVICE_DIR)/vtr pull
 	git -C $(SERVICE_DIR)/onos-service pull
 	git -C $(SERVICE_DIR)/fabric pull
+	git -C $(SERVICE_DIR)/vaos-service pull
 
 $(XOS_DIR):
-	git -C ../.. clone https://gerrit.opencord.org/p/xos.git
+	git -C ../.. clone $(XOS_GITHUB)
 
 update_xos:
 	git -C $(XOS_DIR) pull

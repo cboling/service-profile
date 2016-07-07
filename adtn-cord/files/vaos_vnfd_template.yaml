@@ -1,0 +1,90 @@
+tosca_definitions_version: tosca_simple_profile_for_nfv_1_0_0
+
+description: vAOS VNFD
+
+metadata:
+  template_name: vaos-vnfd
+  ID:            vaos-vnfd
+  vendor:        ADTRAN, Inc.
+  version:       1.0.0
+
+topology_template:
+  node_templates:
+    VDU1:
+      type: tosca.nodes.nfv.VDU.Tacker
+
+      properties:
+        image:             { get_input: vm_image }
+        #user_data:         { get_input: user_data }
+        #user_data_format:  { get_input: user_data_format }
+        availability_zone: nova
+        mgmt_driver: noop
+        config: |
+          param0: key0
+          param1: key1
+
+        monitoring_policy: noop
+
+      capabilities:
+        nfv_compute:
+          properties:
+            num_cpus:  { get_input: num_cpus }  # 3
+            mem_size:  { get_input: mem_size }  # 1GB
+            disk_size: { get_input: disk_size } # 1GB
+
+      # If you need to monitor VAOS, you need connectivity from the OpenStack
+      # Controller.  Correct and uncomment the following and set
+      #
+      #Management_CP:
+      #  type: tosca.nodes.nfv.CP.Tacker
+      #  properties:
+      #    management: true
+      #    anti_spoofing_protection: false
+      #  requirements:
+      #    - virtualLink:
+      #        node: Management_VL1
+      #    - virtualBinding:
+      #        node: VDU1
+      #
+      #Management_VL1:
+      #  type: tosca.nodes.nfv.VL
+      #  properties:
+      #    network_name: { get_input: mgmt_network }
+      #    addresses:    { get_input: mgmt_ip }   # Omit for DHCP
+      #    vendor: Tacker
+
+      LAN_Network_CP:
+        type: tosca.nodes.nfv.CP.Tacker
+        properties:
+          management: { get_input: management }
+          anti_spoofing_protection: false
+        requirements:
+          - virtualLink:
+              node: LAN_Network_VL1
+          - virtualBinding:
+              node: VDU1
+
+      LAN_Network_VL1:
+        type: tosca.nodes.nfv.VL
+        properties:
+          network_name: { get_input: lan_network }
+          addresses:    { get_input: lan_gateway_ip }
+          vendor: Tacker
+
+      WAN_Network_CP:
+        type: tosca.nodes.nfv.CP.Tacker
+        properties:
+          management: false
+          anti_spoofing_protection: false
+        requirements:
+          - virtualLink:
+              node: WAN_Network_VL1
+          - virtualBinding:
+              node: VDU1
+
+      WAN_Network_VL1:
+        type: tosca.nodes.nfv.VL
+        properties:
+          network_name: { get_input: wan_network }
+          #addresses:    { get_input: wan_gateway_ip }    # Using DHCP
+          vendor: Tacker

@@ -1,0 +1,81 @@
+tosca_definitions_version: tosca_simple_yaml_1_0
+
+description: Setup the vAOS Service on the pod
+
+imports:
+   - custom_types/xos.yaml
+   - custom_types/vaosservice.yaml
+
+topology_template:
+  node_templates:
+
+    Private:
+      type: tosca.nodes.NetworkTemplate
+
+    management:
+      type: tosca.nodes.network.Network.XOS
+      properties:
+          no-create: true
+          no-delete: true
+          no-update: true
+
+    vAOS-firewall:
+      type: tosca.nodes.Image
+
+    adtran_pod_v2:
+      type: tosca.nodes.Site
+
+    adtran_pod_v2_vaos:
+      description: This slice holds the vAOS Service
+      type: tosca.nodes.Slice
+      properties:
+          network: noauto
+      requirements:
+          - site:
+              node: adtran_pod_v2
+              relationship: tosca.relationships.MemberOfSite
+          - management:
+              node: management
+              relationship: tosca.relationships.ConnectsToNetwork
+#          - vaosservice:
+#              node: service#vaosservice
+#              relationship: tosca.relationships.MemberOfService
+
+    service#vaosservice:
+      type: tosca.nodes.VaosService
+      requirements:
+          - management:
+              node: management
+              relationship: tosca.relationships.UsesNetwork
+          - owner:
+              node: adtran_pod_v2_vaos
+              relationship: tosca.relationships.MemberOfSlice
+      properties:
+          view_url: /admin/vaosservice/vaosservice/$id$/
+          kind: vaosservice
+          #
+          # The public key is used to allow the service to SSH into the instance
+          #
+          public_key: { get_artifact: [ SELF, pubkey, LOCAL_FILE] }
+          private_key_fn: /opt/xos/synchronizers/vaosservice/vaosservice_private_key
+
+      artifacts:
+          pubkey: /opt/xos/synchronizers/vaosservice/vaosservice_public_key
+
+    # An example tenant
+    tenant#vaostenant_1:
+        type: tosca.nodes.VaosTenant
+        description: >
+            A Tenant of the vAOS Service. Each Tenant is tied to a
+            specific vlan_id and instance of vAOS.
+        properties:
+            # SSID: A unique vAOS Tenant service ID
+            service_specific_id: 123
+            # Tags. Use -1 for 'unttagged'.
+            s_tag: 222
+            c_tag: 111
+
+        requirements:
+          - tenant:
+              node: service#vaosservice
+              relationship: tosca.relationships.TenantOfService
