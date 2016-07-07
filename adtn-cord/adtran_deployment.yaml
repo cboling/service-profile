@@ -34,9 +34,9 @@ topology_template:
           - m1.small:
              node: m1.small
              relationship: tosca.relationships.SupportsFlavor
-          - m1.vaos:
-             node: m1.vaos
-             relationship: tosca.relationships.SupportsFlavor
+          #- m1.vaos:
+          #   node: m1.vaos
+          #   relationship: tosca.relationships.SupportsFlavor
 
     adtran_pod_v2:
       type: tosca.nodes.Site
