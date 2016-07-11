@@ -12,13 +12,9 @@ services:
       image: adtran/xos-synchronizer-onboarding
       build: ../../xos/containers/onboarding_synchronizer
       command: bash -c "cd /opt/xos/synchronizers/onboarding; ./run.sh"
-      #command: sleep 86400
       labels:
-          # TODO: (ADTRAN) can we remove the xosproject kind & target below for our CORD?
           org.xosproject.kind: synchronizer
           org.xosproject.target: onboarding
-          com.adtran.kind: synchronizer
-          com.adtran.target: openstack
       depends_on:
           - xos_bootstrap_ui
           - xos_db
@@ -40,11 +36,8 @@ services:
       build: ../../xos/containers/synchronizer
       command: bash -c "sleep 120; python /opt/xos/synchronizers/openstack/xos-synchronizer.py"
       labels:
-          # TODO: (ADTRAN) can we remove the xosproject kind & target below for our CORD?
           org.xosproject.kind: synchronizer
           org.xosproject.target: onboarding
-          com.adtran.kind: synchronizer
-          com.adtran.target: openstack
       depends_on:
           - xos_bootstrap_ui
           - xos_db
