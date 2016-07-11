@@ -1,9 +1,8 @@
 include ../common/Makedefs
 
 CORD_SERVICES=$(SERVICE_DIR)/exampleservice $(SERVICE_DIR)/olt $(SERVICE_DIR)/vsg $(SERVICE_DIR)/vtn \
-              $(SERVICE_DIR)/vrouter $(SERVICE_DIR)/vtr $(SERVICE_DIR)/onos-service $(SERVICE_DIR)/fabric
-
-# TODO: Add in vaos-service to the list above
+              $(SERVICE_DIR)/vrouter $(SERVICE_DIR)/vtr $(SERVICE_DIR)/onos-service $(SERVICE_DIR)/fabric \
+              $(SERVICE_DIR)/vaos-service:
 
 services: $(SERVICE_DIR) $(CORD_SERVICES)
 
