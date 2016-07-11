@@ -52,7 +52,7 @@ update_xos:
 onboarding:
 	echo "[ONBOARDING]"
 	# on-board any services here
-	$(RUN_TOSCA_BOOTSTRAP) ../common/enable-onboarding.yaml
+	#$(RUN_TOSCA_BOOTSTRAP) ../common/enable-onboarding.yaml
 	bash ../common/wait_for_onboarding_ready.sh 81 xos
 	$(RUN_TOSCA_BOOTSTRAP) ../common/disable-onboarding.yaml
 	sudo cp id_rsa key_import/vsg_rsa
