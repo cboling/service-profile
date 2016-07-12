@@ -70,6 +70,6 @@ topology_template:
       properties:
           is_admin: true
           is_active: true
-          firstname: XOS
-          lastname: admin
-          password: letmein
+          firstname: TriplePoint
+          lastname: Team
+          password: adtran
