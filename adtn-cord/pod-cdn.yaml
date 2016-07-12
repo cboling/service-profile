@@ -1,40 +1,52 @@
 tosca_definitions_version: tosca_simple_yaml_1_0
 
-description: Set up management network for CORD POD
+description: Setup the CDN on the pod
+
 imports:
    - custom_types/xos.yaml
 
 topology_template:
   node_templates:
 
-    management_template:
+    Private:
       type: tosca.nodes.NetworkTemplate
-      properties:
-          visibility: private
-          translation: none
 
     management:
+      type: tosca.nodes.network.Network.XOS
+      properties:
+          no-create: true
+          no-delete: true
+          no-update: true
+
+    cdn-public:
       type: tosca.nodes.network.Network
       properties:
           ip_version: 4
-          cidr: 10.17.0.0/24
+          cidr: 207.141.192.128/28
       requirements:
           - network_template:
-              node: management_template
+              node: Private
               relationship: tosca.relationships.UsesNetworkTemplate
           - owner:
-              node: mysite_management
+              node: mysite_cdn
               relationship: tosca.relationships.MemberOfSlice
+          - connection:
+              node: mysite_cdn
+              relationship: tosca.relationships.ConnectsToSlice
 
-    adtran_pod_v2:
+    mysite:
       type: tosca.nodes.Site
 
-    adtran_pod_v2_management:
-      description: This slice exists solely to own the management network
+    mysite_cdn:
+      description: This slice holds the CDN
       type: tosca.nodes.Slice
       properties:
           network: noauto
       requirements:
           - site:
-              node: adtran_pod_v2
+              node: mysite
               relationship: tosca.relationships.MemberOfSite
+          - management:
+              node: management
+              relationship: tosca.relationships.ConnectsToNetwork
+
