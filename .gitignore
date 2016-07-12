@@ -1,4 +1,5 @@
 .vagrant/
+key_import/
 onboarding-docker-compose/
 /adtn-cord/admin-openrc.sh
 /adtn-cord/id_rsa.pub
