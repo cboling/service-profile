@@ -2,7 +2,7 @@ include ../common/Makedefs
 
 CORD_SERVICES=$(SERVICE_DIR)/exampleservice $(SERVICE_DIR)/olt $(SERVICE_DIR)/vsg $(SERVICE_DIR)/vtn \
               $(SERVICE_DIR)/vrouter $(SERVICE_DIR)/vtr $(SERVICE_DIR)/onos-service $(SERVICE_DIR)/fabric \
-              $(SERVICE_DIR)/vaos-service
+              $(SERVICE_DIR)/vaosservice
 
 services: $(SERVICE_DIR) $(CORD_SERVICES)
 
@@ -40,8 +40,9 @@ $(SERVICE_DIR)/fabric:
 $(SERVICE_DIR)/monitoring:
 	git -C $(SERVICE_DIR) clone https://gerrit.opencord.org/p/monitoring.git
 
-$(SERVICE_DIR)/vaos-service:
+$(SERVICE_DIR)/vaosservice:
 	git -C $(SERVICE_DIR) clone https://github.com/cboling/vaos-service.git
+	mv vaos-service vaosservice
 
 cleanup:
 	rm -rf $(SERVICE_DIR)/*
@@ -55,7 +56,7 @@ update:
 	git -C $(SERVICE_DIR)/vtr pull
 	git -C $(SERVICE_DIR)/onos-service pull
 	git -C $(SERVICE_DIR)/fabric pull
-	git -C $(SERVICE_DIR)/vaos-service pull
+	git -C $(SERVICE_DIR)/vaosservice pull
 
 $(XOS_DIR):
 	git -C ../.. clone $(XOS_GITHUB)
