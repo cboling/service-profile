@@ -65,17 +65,17 @@ onboarding:
 	sudo cp id_rsa.pub key_import/vaos_rsa.pub
 	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vrouter/xos/vrouter-onboard.yaml
 	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/olt/xos/volt-onboard.yaml
-	#$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vsg/xos/vsg-onboard.yaml
+	# $(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vsg/xos/vsg-onboard.yaml
 	# $(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vtn/xos/vtn-onboard.yaml
 	# $(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/onos-service/xos/onos-onboard.yaml
 	# $(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/fabric/xos/\fabric-onboard.yaml
 	# $(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vtr/xos/vtr-onboard.yaml
 	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vaosservice/xos/vaosservice-onboard.yaml
-	# $(RUN_TOSCA_BOOTSTRAP) synchronizers.yaml
+	$(RUN_TOSCA_BOOTSTRAP) synchronizers.yaml
 	$(RUN_TOSCA_BOOTSTRAP) ../common/enable-onboarding.yaml
 	bash ../common/wait_for_onboarding_ready.sh 81 services/vrouter
 	bash ../common/wait_for_onboarding_ready.sh 81 services/volt
-	#bash ../common/wait_for_onboarding_ready.sh 81 services/vsg
+	# bash ../common/wait_for_onboarding_ready.sh 81 services/vsg
 	# bash ../common/wait_for_onboarding_ready.sh 81 services/vtn
 	# bash ../common/wait_for_onboarding_ready.sh 81 services/onos
 	# bash ../common/wait_for_onboarding_ready.sh 81 services/fabric
