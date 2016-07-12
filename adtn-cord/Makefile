@@ -143,10 +143,10 @@ download-monitoringservice:
 	make -f ../common/Makefile.services monitoring_services
 
 nodes.yaml:
-	export SETUPDIR=.; bash ../common/make-nodes-yaml.sh
+	export SETUPDIR=.; bash ./make-nodes-yaml.sh
 
 images.yaml:
-	export SETUPDIR=.; bash ../common/make-images-yaml.sh
+	export SETUPDIR=.; bash ./make-images-yaml.sh
 
 vtn-external.yaml:
 	export SETUPDIR=.; bash ./make-vtn-external-yaml.sh

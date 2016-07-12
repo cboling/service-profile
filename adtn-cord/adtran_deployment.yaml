@@ -42,6 +42,7 @@ topology_template:
       type: tosca.nodes.Site
       properties:
           display_name: Adtran-PODv2
+          site_url: http://adtran.com/
       requirements:
           - deployment:
                node: AdtnDeployment
