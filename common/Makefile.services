@@ -41,8 +41,7 @@ $(SERVICE_DIR)/monitoring:
 	git -C $(SERVICE_DIR) clone https://gerrit.opencord.org/p/monitoring.git
 
 $(SERVICE_DIR)/vaosservice:
-	git -C $(SERVICE_DIR) clone https://github.com/cboling/vaos-service.git
-	mv vaos-service vaosservice
+	git -C $(SERVICE_DIR) clone https://github.com/cboling/vaosservice.git
 
 cleanup:
 	rm -rf $(SERVICE_DIR)/*
