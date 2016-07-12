@@ -4,3 +4,4 @@ onboarding-docker-compose/
 /adtn-cord/id_rsa.pub
 /adtn-cord/id_rsa
 /adtn-cord/nodes.yaml
+/adtn-cord/images.yaml
