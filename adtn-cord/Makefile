@@ -7,13 +7,8 @@ DOCKER_PROJECT=cordpod
 BOOTSTRAP_PROJECT=cordpodbs
 XOS_BOOTSTRAP_PORT=81
 XOS_UI_PORT=80
-
-#ADMIN_USERNAME=padmin@vicci.org
-#ADMIN_PASSWORD=letmein
-
 ADMIN_USERNAME=TriplePoint@adtran.com
 ADMIN_PASSWORD=adtran
-
 RUN_TOSCA_BOOTSTRAP=python ../common/run_tosca.py $(XOS_BOOTSTRAP_PORT) $(ADMIN_USERNAME) $(ADMIN_PASSWORD)
 RUN_TOSCA=python ../common/run_tosca.py $(XOS_UI_PORT) $(ADMIN_USERNAME) $(ADMIN_PASSWORD)
 
@@ -29,7 +24,7 @@ dirs:
 	mkdir -p onboarding-docker-compose
 
 bootstrap:
-	echo "[BOOTSTRAP]"
+	@echo "[BOOTSTRAP]"
 	sudo rm -f onboarding-docker-compose/docker-compose.yml
 	sudo CONFIG_DIR=$(CONFIG_DIR) docker-compose -p $(BOOTSTRAP_PROJECT) -f $(BOOTSTRAP_YML) up -d
 	bash ../common/wait_for_xos_port.sh 81
@@ -50,9 +45,8 @@ update_xos:
 	make -f ../common/Makefile.services update_xos
 
 onboarding:
-	echo "[ONBOARDING]"
+	@echo "[ONBOARDING]"
 	# on-board any services here
-	#$(RUN_TOSCA_BOOTSTRAP) ../common/enable-onboarding.yaml
 	bash ../common/wait_for_onboarding_ready.sh 81 xos
 	$(RUN_TOSCA_BOOTSTRAP) ../common/disable-onboarding.yaml
 	sudo cp id_rsa key_import/vsg_rsa
@@ -63,29 +57,29 @@ onboarding:
 	sudo cp id_rsa.pub key_import/onos_rsa.pub
 	sudo cp id_rsa key_import/vaos_rsa
 	sudo cp id_rsa.pub key_import/vaos_rsa.pub
+	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vaosservice/xos/vaosservice-onboard.yaml
 	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vrouter/xos/vrouter-onboard.yaml
 	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/olt/xos/volt-onboard.yaml
 	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vsg/xos/vsg-onboard.yaml
-	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vtn/xos/vtn-onboard.yaml
+	#$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vtn/xos/vtn-onboard.yaml
 	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/onos-service/xos/onos-onboard.yaml
-	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/fabric/xos/\fabric-onboard.yaml
-	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vtr/xos/vtr-onboard.yaml
-	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vaosservice/xos/vaosservice-onboard.yaml
+	$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/fabric/xos/fabric-onboard.yaml
+	#$(RUN_TOSCA_BOOTSTRAP) $(SERVICE_DIR)/vtr/xos/vtr-onboard.yaml
 	$(RUN_TOSCA_BOOTSTRAP) synchronizers.yaml
 	$(RUN_TOSCA_BOOTSTRAP) ../common/enable-onboarding.yaml
+	bash ../common/wait_for_onboarding_ready.sh 81 services/vaosservice
 	bash ../common/wait_for_onboarding_ready.sh 81 services/vrouter
 	bash ../common/wait_for_onboarding_ready.sh 81 services/volt
-	bash ../common/wait_for_onboarding_ready.sh 81 services/vsg
-	bash ../common/wait_for_onboarding_ready.sh 81 services/vtn
+	#bash ../common/wait_for_onboarding_ready.sh 81 services/vsg
+	#bash ../common/wait_for_onboarding_ready.sh 81 services/vtn
 	bash ../common/wait_for_onboarding_ready.sh 81 services/onos
 	bash ../common/wait_for_onboarding_ready.sh 81 services/fabric
-	bash ../common/wait_for_onboarding_ready.sh 81 services/vtr
-	bash ../common/wait_for_onboarding_ready.sh 81 services/vaosservice
+	#bash ../common/wait_for_onboarding_ready.sh 81 services/vtr
 	bash ../common/wait_for_onboarding_ready.sh 81 xos
 	bash ../common/wait_for_xos_port.sh 80
 
 podconfig: nodes.yaml images.yaml
-	echo "[PODCONFIG]"
+	@echo "[PODCONFIG]"
 	$(RUN_TOSCA) setup.yaml
 	$(RUN_TOSCA) nodes.yaml
 	$(RUN_TOSCA) images.yaml
@@ -127,8 +121,9 @@ onboard-exampleservice:
 	bash ../common/wait_for_onboarding_ready.sh 81 xos
 	bash ../common/wait_for_xos_port.sh 80
 
-cord-monitoringservice: ceilometer_custom_images cord onboard-monitoringservice
+cord-monitoringservice: ceilometer_custom_images onboard-monitoringservice
 	$(RUN_TOSCA) monitoringservice.yaml
+	$(RUN_TOSCA) monitoringtenant.yaml
 
 onboard-monitoringservice: download-monitoringservice
 	sudo cp id_rsa key_import/monitoringservice_rsa
@@ -178,18 +173,22 @@ cleanup: stop rm
 	./cleanup.sh
 	bash -c "source ./admin-openrc.sh; nova list --all-tenants; neutron net-list"
 
-ceilometer_custom_images: images/ceilometer-trusty-server-multi-nic.img
-	bash -c "source ./admin-openrc.sh; glance image-show ceilometer-trusty-server-multi-nic || glance image-create --name ceilometer-trusty-server-multi-nic --disk-format qcow2 --file ./images/ceilometer-trusty-server-multi-nic.img --container-format bare"
+ceilometer_custom_images: images/ceilometer-service-trusty-server-multi-nic.img images/ceilometer-trusty-server-multi-nic.img
+	#TODO: Add logic for service VM custom image (ceilometer-service-trusty-server-multi-nic)
+	bash -c "source ./admin-openrc.sh; glance image-show ceilometer-trusty-server-multi-nic || glance image-create --name ceilometer-trusty-server-multi-nic --disk-format qcow2 --file ./images/ceilometer-trusty-server-multi-nic.compressed.qcow2 --container-format bare"
 
 vsg_custom_images: images/vsg-1.0.img
 	bash -c "source ./admin-openrc.sh; glance image-show vsg-1.0 || glance image-create --name vsg-1.0 --disk-format qcow2 --file ./images/vsg-1.0.img --container-format bare"
 
 images/ceilometer-trusty-server-multi-nic.img: images
-	wget http://www.vicci.org/cord/ceilometer-trusty-server-multi-nic.compressed.qcow2 -P ./images
-	mv ./images/ceilometer-trusty-server-multi-nic.compressed.qcow2 ./images/ceilometer-trusty-server-multi-nic.img
+	bash -c "source ../setup/admin-openrc.sh; glance image-show ceilometer-trusty-server-multi-nic || wget http://www.vicci.org/cord/ceilometer-trusty-server-multi-nic.compressed.qcow2 -P ./images"
+
+images/ceilometer-service-trusty-server-multi-nic.img: images
+	#TODO: Add logic for service VM custom image (ceilometer-service-trusty-server-multi-nic) once image is uploaded into vicci portal
+	#bash -c "source ../setup/admin-openrc.sh; glance image-show ceilometer-service-trusty-server-multi-nic || wget http://www.vicci.org/cord/ceilometer-service-trusty-server-multi-nic.compressed.qcow2 -P ./images"
 
 images/vsg-1.0.img: images
-	wget http://www.vicci.org/cord/vsg-1.0.img -P ./images
+	[ -s images/vsg-1.0.img ] || wget http://www.vicci.org/cord/vsg-1.0.img -P ./images
 
 images:
 	mkdir -p ./images
