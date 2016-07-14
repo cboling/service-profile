@@ -90,11 +90,14 @@ vtn: vtn-external.yaml
 fabric: fabric.yaml
 	$(RUN_TOSCA) fabric.yaml
 
-cord: vsg_custom_images
+.PHONY: cord
+#cord: vsg_custom_images
+cord:
 	$(RUN_TOSCA) mgmt-net.yaml
-	$(RUN_TOSCA) cord-services.yaml
+	#$(RUN_TOSCA) vaosservice.yaml
+	#$(RUN_TOSCA) cord-services.yaml
 	#$(RUN_TOSCA) cord-vsg-services.yaml
-	$(RUN_TOSCA) cord-volt-devices.yaml
+	#$(RUN_TOSCA) cord-volt-devices.yaml
 
 cord-subscriber:
 	$(RUN_TOSCA) cord-test-subscriber.yaml

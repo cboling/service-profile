@@ -27,6 +27,24 @@ For the Adtran POD(s), we are using the latest version of Docker Compose in orde
 to support the version 2 docker-compose format.  This format allows us to specify both
 the docker image name and the local build directory (so we build all the images locally).
 
+## OpenStack Patches
+
+The following patches to OpenStack files need to be made to either run XOS some version of
+OpenStack.
+
+### Mitaka
+
+The following bugs were found during testing of XOS with the Mitaka release of OpenStack
+
+#### Novaclient: additional properties are not allowed
+The 'nova quota-update' novaclient v2.0 client has a bug in it and returns a message that it
+is unable to update quotas due to **_additional properties are not allowed ('tenant_id' was unexpected)_**
+This can be done by patching the /usr/local/lib/python2.7/dist-packages/novaclient/v2/quotas.py file and
+restarting Nova.  See [Update requests body for quota-update](https://review.openstack.org/#/c/220488/4/novaclient/v2/quotas.py)
+for more information.
+
+This bug is fixed in later version of OpenStack
+
 ## How to bring up the ADTRAN CORD
 
 Installing a CORD POD involves these steps:
@@ -93,7 +111,7 @@ or
 5. Build the XOS docker containers. XOS can then be brought up for ADTRAN CORD
    by running a few `make` commands. First, run:
 ```
-    $ cd .../service-profiles/adtn-cord/              (this directory !!!!)
+    $ cd .../service-profiles/adtn-cord/              (this directory!!!)
     $ make
 ```
    This may take 15 minutes to an hour.  It will build all the synchronizers and also do
@@ -107,11 +125,30 @@ or
    installed into XOS yet even though their respective synchronizing docker containers may
    have already been started.
 
+   Run the **_docker ps_** command and you should see output similar to the following:
+
+   ```
+   $ docker ps
+   CONTAINER ID  IMAGE                               COMMAND                  CREATED      STATUS      PORTS                         NAMES
+   365e17e52100  adtran/xos-ui                       "python /opt/xos/mana"   2 hours ago  Up 2 hours  0.0.0.0:80->80/tcp, 8000/tcp  cordpod_xos_ui_1
+   3e94c6519a0c  adtran/xos-synchronizer-fabric      "bash -c 'sleep 120; "   2 hours ago  Up 2 hours  8000/tcp                      cordpod_xos_synchronizer_fabric_1
+   55170012f682  adtran/xos-synchronizer-vaosservice "bash -c 'sleep 120; "   2 hours ago  Up 2 hours  8000/tcp                      cordpod_xos_synchronizer_vaosservice_1
+   59b8718c0953  adtran/xos-synchronizer-vsg         "bash -c 'sleep 120; "   2 hours ago  Up 2 hours  8000/tcp                      cordpod_xos_synchronizer_vsg_1
+   5c6282fe30df  adtran/xos-synchronizer-openstack   "bash -c 'sleep 120; "   2 hours ago  Up 2 hours  8000/tcp                      cordpodbs_xos_synchronizer_openstack_1
+   f5be010d17e4  adtran/xos-synchronizer-onboarding  "bash -c 'cd /opt/xos"   2 hours ago  Up 2 hours  8000/tcp                      cordpodbs_xos_synchronizer_onboarding_1
+   93b9ea96a395  adtran/xos                          "python /opt/xos/mana"   2 hours ago  Up 2 hours  0.0.0.0:81->81/tcp, 8000/tcp  cordpodbs_xos_bootstrap_ui_1
+   0dd4b30067c9  adtran/xos-postgres                 "/usr/lib/postgresql/"   2 hours ago  Up 2 hours  5432/tcp                      cordpodbs_xos_db_1
+
+   ```
+
 ### Installing the XOS Services
 
 The current makefile configuration builds the ADTRAN vAOS synchronizer as well as several of the
-on.lab syncronizers (_fabric, vSG, onos, ..._) but we currently are only concerned with vAOS at
+on.lab synchronizers (_fabric, vSG, onos, ..._) but we currently are only concerned with vAOS at
 this point.
+
+Before we install any services (and example tenants), some configurations to the existing TOSCA
+files is required.
 
 #### Modifying the initial XOS TOSCA files.
 

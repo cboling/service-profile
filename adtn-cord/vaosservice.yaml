@@ -1,16 +1,121 @@
 tosca_definitions_version: tosca_simple_yaml_1_0
 
-description: Setup the vAOS Service on the pod
+description: Just enough Tosca to get the vAOS slice running on the ADTRAN CORD POD
 
 imports:
    - custom_types/xos.yaml
-   - custom_types/vaosservice.yaml
+
+node_types:
+    #
+    # Define what a vAOS Service and Tenant are
+    #
+    tosca.nodes.VAOSService:
+        derived_from: tosca.nodes.Root
+        description:  CORD: The vAOS Service
+        capabilities:
+            scalable:
+                type: tosca.capabilities.Scalable
+            service:
+                type: tosca.capabilities.xos.Service
+        properties:
+            no-delete:
+                type: boolean
+                default: false
+                description: Do not allow Tosca to delete this object
+            no-create:
+                type: boolean
+                default: false
+                description: Do not allow Tosca to create this object
+            no-update:
+                type: boolean
+                default: false
+                description: Do not allow Tosca to update this object
+            replaces:
+                type: string
+                required: false
+                descrption: Replaces/renames this object
+            kind:
+                type: string
+                default: generic
+                description: Type of service.
+            view_url:
+                type: string
+                required: false
+                description: URL to follow when icon is clicked in the Service Directory.
+            icon_url:
+                type: string
+                required: false
+                description: ICON to display in the Service Directory.
+            enabled:
+                type: boolean
+                default: true
+            published:
+                type: boolean
+                default: true
+                description: If True then display this Service in the Service Directory.
+            public_key:
+                type: string
+                required: false
+                description: Public key to install into Instances to allows Services to SSH into them.
+            private_key_fn:
+                type: string
+                required: false
+                description: Location of private key file
+            versionNumber:
+                type: string
+                required: false
+                description: Version number of Service.
+
+    tosca.nodes.VAOSTenant:
+        derived_from: tosca.nodes.Root
+        description: >
+            CORD: A Tenant of the vAOS Service. Each Tenant is tied to a
+            specific vlan_id and at this time a single vAOS VM instance.
+        properties:
+            kind:
+                type: string
+                default: generic
+                description: Kind of tenant
+            service_specific_id:
+                type: string
+                required: false
+                description: Service specific ID opaque to XOS but meaningful to service
+            s_tag:
+                type: string
+                required: false
+                description: s_tag, identifies which volt port
+            c_tag:
+                type: string
+                required: false
+                description: c_tag, identifies which subscriber within s_tag
 
 topology_template:
   node_templates:
+    ################################################################
+    # ADTRAN vAOS CORD Services
+    #
+    # This service will show up in the XOS UI 'Services' tab once this
+    # TOSCA script is ran.
 
-    Private:
-      type: tosca.nodes.NetworkTemplate
+    service#vAOS:
+      type: tosca.nodes.VAOSService
+      requirements:
+          - vsg_tenant:
+              node: service#vaos
+              relationship: tosca.relationships.TenantOfService
+      properties:
+          view_url: /admin/vaos/vaosservice/$id$/
+          kind: vAOS
+          replaces: service_vaos
+          public_key: { get_artifact: [ SELF, pubkey, LOCAL_FILE] }
+          private_key_fn: /opt/xos/services/vaosservice/keys/volt_rsa
+      artifacts:
+          pubkey: /opt/xos/services/vaos/vaosservice/vaos_rsa.pub
+
+    ################################################################
+    # The 'management' network should have already been created by
+    # running the 'mgmt-net.yaml' TOSCA script. vAOS will connect to
+    # this network for managment (configuration) purposes.
 
     management:
       type: tosca.nodes.network.Network.XOS
@@ -19,63 +124,58 @@ topology_template:
           no-delete: true
           no-update: true
 
-    vAOS-firewall:
+    Private:
+      type: tosca.nodes.NetworkTemplate
+
+    image#vAOS-firewall:
       type: tosca.nodes.Image
+
+    ################################################################
+    # The 'adtran_pod_v2' Site was created as part of the initial XOS
+    # docker container creation.
 
     adtran_pod_v2:
       type: tosca.nodes.Site
 
+    ###############################################################
+    # CORD Slices (OpenStack Tenant vAOS instances will run in)
+
     adtran_pod_v2_vaos:
-      description: This slice holds the vAOS Service
+      description: vAOS Controller Slice
       type: tosca.nodes.Slice
       properties:
           network: noauto
+          # NOTE: Made max_instances 1 (default is 10) so it can run on my devstack setup.
+          max_instances: 1
       requirements:
+          - vsg_service:
+              node: service#vaos
+              relationship: tosca.relationships.MemberOfService
           - site:
               node: adtran_pod_v2
               relationship: tosca.relationships.MemberOfSite
           - management:
               node: management
               relationship: tosca.relationships.ConnectsToNetwork
-#          - vaosservice:
-#              node: service#vaosservice
-#              relationship: tosca.relationships.MemberOfService
+          #- image:
+          #    node: image#vAOS-firewall
+          #    relationship: tosca.relationships.DefaultImage
 
-    service#vaosservice:
-      type: tosca.nodes.VaosService
+    ###############################################################
+    # CORD Networks (Shared OpenStack networks vAOS instances connect to)
+
+    adtran_pod_v2_vaos-access:
+      type: tosca.nodes.network.Network
+      properties:
+          ip_version: 4
       requirements:
-          - management:
-              node: management
-              relationship: tosca.relationships.UsesNetwork
+          - network_template:
+              node: Private
+              relationship: tosca.relationships.UsesNetworkTemplate
           - owner:
               node: adtran_pod_v2_vaos
               relationship: tosca.relationships.MemberOfSlice
-      properties:
-          view_url: /admin/vaosservice/vaosservice/$id$/
-          kind: vaosservice
-          #
-          # The public key is used to allow the service to SSH into the instance
-          #
-          public_key: { get_artifact: [ SELF, pubkey, LOCAL_FILE] }
-          private_key_fn: /opt/xos/synchronizers/vaosservice/vaosservice_private_key
+          - connection:
+              node: adtran_pod_v2_vaos
+              relationship: tosca.relationships.ConnectsToSlice
 
-      artifacts:
-          pubkey: /opt/xos/synchronizers/vaosservice/vaosservice_public_key
-
-    # An example tenant
-    tenant#vaostenant_1:
-        type: tosca.nodes.VaosTenant
-        description: >
-            A Tenant of the vAOS Service. Each Tenant is tied to a
-            specific vlan_id and instance of vAOS.
-        properties:
-            # SSID: A unique vAOS Tenant service ID
-            service_specific_id: 123
-            # Tags. Use -1 for 'unttagged'.
-            s_tag: 222
-            c_tag: 111
-
-        requirements:
-          - tenant:
-              node: service#vaosservice
-              relationship: tosca.relationships.TenantOfService

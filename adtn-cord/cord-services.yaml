@@ -1,179 +1,120 @@
 tosca_definitions_version: tosca_simple_yaml_1_0
 
-description: Just enough Tosca to get the vAOS slice running on the ADTRAN CORD POD
+description: Just enough Tosca to get the vSG slice running on the CORD POD
 
 imports:
    - custom_types/xos.yaml
 
-node_types:
-    tosca.nodes.VAOSService:
-        derived_from: tosca.nodes.Root
-        description: >
-            CORD: The vAOS Service
-        capabilities:
-            scalable:
-                type: tosca.capabilities.Scalable
-            service:
-                type: tosca.capabilities.xos.Service
-        properties:
-            no-delete:
-                type: boolean
-                default: false
-                description: Do not allow Tosca to delete this object
-            no-create:
-                type: boolean
-                default: false
-                description: Do not allow Tosca to create this object
-            no-update:
-                type: boolean
-                default: false
-                description: Do not allow Tosca to update this object
-            replaces:
-                type: string
-                required: false
-                descrption: Replaces/renames this object
-            kind:
-                type: string
-                default: generic
-                description: Type of service.
-            view_url:
-                type: string
-                required: false
-                description: URL to follow when icon is clicked in the Service Directory.
-            icon_url:
-                type: string
-                required: false
-                description: ICON to display in the Service Directory.
-            enabled:
-                type: boolean
-                default: true
-            published:
-                type: boolean
-                default: true
-                description: If True then display this Service in the Service Directory.
-            public_key:
-                type: string
-                required: false
-                description: Public key to install into Instances to allows Services to SSH into them.
-            private_key_fn:
-                type: string
-                required: false
-                description: Location of private key file
-            versionNumber:
-                type: string
-                required: false
-                description: Version number of Service.
-
-    tosca.nodes.VAOSTenant:
-        derived_from: tosca.nodes.Root
-        description: >
-            CORD: A Tenant of the vAOS Service. Each Tenant is tied to a
-            specific vlan_id.
-        properties:
-            kind:
-                type: string
-                default: generic
-                description: Kind of tenant
-            service_specific_id:
-                type: string
-                required: false
-                description: Service specific ID opaque to XOS but meaningful to service
-            s_tag:
-                type: string
-                required: false
-                description: s_tag, identifies which volt port
-            c_tag:
-                type: string
-                required: false
-                description: c_tag, identifies which subscriber within s_tag
-
 topology_template:
   node_templates:
-    # ADTRAN CORD Services
+    # CORD Services
+    service#vtr:
+      type: tosca.nodes.Service
+      properties:
+          view_url: /admin/vtr/vtrservice/$id$/
+          kind: vTR
+          replaces: service_vtr
+
     service#volt:
-      type: tosca.nodes.VAOSService
+      type: tosca.nodes.VOLTService
       requirements:
           - vsg_tenant:
-              node: service#vaos
+              node: service#vsg
               relationship: tosca.relationships.TenantOfService
       properties:
           view_url: /admin/volt/voltservice/$id$/
-          kind: vAOS
-          replaces: service_vaos
+          kind: vOLT
+          replaces: service_volt
           public_key: { get_artifact: [ SELF, pubkey, LOCAL_FILE] }
-          private_key_fn: /opt/xos/services/vaosservice/keys/volt_rsa
+          private_key_fn: /opt/xos/services/volt/keys/volt_rsa
       artifacts:
-          pubkey: /opt/xos/services/volt/vaosservice/volt_rsa.pub
+          pubkey: /opt/xos/services/volt/keys/volt_rsa.pub
 
-    #addresses_vsg:
-    #  type: tosca.nodes.AddressPool
-    #  properties:
-    #      addresses: 10.168.0.0/24
-    #      gateway_ip: 10.168.0.1
-    #      gateway_mac: 02:42:0a:a8:00:01
+    addresses_vsg:
+      type: tosca.nodes.AddressPool
+      properties:
+          addresses: 10.168.0.0/24
+          gateway_ip: 10.168.0.1
+          gateway_mac: 02:42:0a:a8:00:01
 
-    #addresses_exampleservice-public:
-    #  type: tosca.nodes.AddressPool
-    #  properties:
-    #      addresses: 10.168.1.0/24
-    #      gateway_ip: 10.168.1.1
-    #      gateway_mac: 02:42:0a:a8:00:01
+    addresses_exampleservice-public:
+      type: tosca.nodes.AddressPool
+      properties:
+          addresses: 10.168.1.0/24
+          gateway_ip: 10.168.1.1
+          gateway_mac: 02:42:0a:a8:00:01
 
-    #service#vsg:
-    #  type: tosca.nodes.VSGService
-    #  requirements:
-    #      - vrouter_tenant:
-    #          node: service#vrouter
-    #          relationship: tosca.relationships.TenantOfService
-    #  properties:
-    #      view_url: /admin/vsg/vsgservice/$id$/
-    #      backend_network_label: hpc_client
-    #      public_key: { get_artifact: [ SELF, pubkey, LOCAL_FILE] }
-    #      private_key_fn: /opt/xos/services/vsg/keys/vsg_rsa
-#   #       node_label: label_vsg
-    #      replaces: service_vsg
-    #  artifacts:
-    #      pubkey: /opt/xos/services/vsg/keys/vsg_rsa.pub
+    service#vsg:
+      type: tosca.nodes.VSGService
+      requirements:
+          - vrouter_tenant:
+              node: service#vrouter
+              relationship: tosca.relationships.TenantOfService
+      properties:
+          view_url: /admin/vsg/vsgservice/$id$/
+          backend_network_label: hpc_client
+          public_key: { get_artifact: [ SELF, pubkey, LOCAL_FILE] }
+          private_key_fn: /opt/xos/services/vsg/keys/vsg_rsa
+#          node_label: label_vsg
+          replaces: service_vsg
+      artifacts:
+          pubkey: /opt/xos/services/vsg/keys/vsg_rsa.pub
 
-    #service#vrouter:
-    #  type: tosca.nodes.VRouterService
-    #  properties:
-    #      view_url: /admin/vrouter/vrouterservice/$id$/
-    #      replaces: service_vrouter
-    #  requirements:
-    #      - addresses_vsg:
-    #          node: addresses_vsg
-    #          relationship: tosca.relationships.ProvidesAddresses
-    #      - addresses_service1:
-    #          node: addresses_exampleservice-public
-    #          relationship: tosca.relationships.ProvidesAddresses
+    service#vrouter:
+      type: tosca.nodes.VRouterService
+      properties:
+          view_url: /admin/vrouter/vrouterservice/$id$/
+          replaces: service_vrouter
+      requirements:
+          - addresses_vsg:
+              node: addresses_vsg
+              relationship: tosca.relationships.ProvidesAddresses
+          - addresses_service1:
+              node: addresses_exampleservice-public
+              relationship: tosca.relationships.ProvidesAddresses
 
-    #service#ONOS_CORD:
-    #  type: tosca.nodes.ONOSService
-    #  properties:
-    #      no-delete: true
-    #      no-create: true
-    #      no-update: true
 
-    #service#ONOS_Fabric:
-    #  type: tosca.nodes.ONOSService
-    #  properties:
-    #      no-delete: true
-    #      no-create: true
-    #      no-update: true
+    service#ONOS_CORD:
+      type: tosca.nodes.ONOSService
+      properties:
+          no-delete: true
+          no-create: true
+          no-update: true
 
-    #vRouter_ONOS_app:
-    #  type: tosca.nodes.ONOSvRouterApp
+    service#ONOS_Fabric:
+      type: tosca.nodes.ONOSService
+      properties:
+          no-delete: true
+          no-create: true
+          no-update: true
+
+    # The vOLT ONOS app is not yet fully integrated
+    #vOLT_ONOS_app:
+    #  type: tosca.nodes.ONOSvOLTApp
     #  requirements:
     #      - onos_tenant:
-    #          node: service#ONOS_Fabric
+    #          node: service#ONOS_CORD
     #          relationship: tosca.relationships.TenantOfService
-    #      - vrouter_service:
-    #          node: service#vrouter
+    #      - volt_service:
+    #          node: service#volt
     #          relationship: tosca.relationships.UsedByService
     #  properties:
-    #      dependencies: org.onosproject.vrouter
-    #      autogenerate: vrouter-network-cfg
+    #      install_dependencies: onos-ext-notifier-1.0-SNAPSHOT.oar, onos-ext-volt-event-publisher-1.0-SNAPSHOT.oar
+    #      dependencies: org.onosproject.openflow-base, org.onosproject.olt, org.ciena.onos.ext_notifier, org.ciena.onos.volt_event_publisher
+    #      autogenerate: volt-network-cfg
+
+    vRouter_ONOS_app:
+      type: tosca.nodes.ONOSvRouterApp
+      requirements:
+          - onos_tenant:
+              node: service#ONOS_Fabric
+              relationship: tosca.relationships.TenantOfService
+          - vrouter_service:
+              node: service#vrouter
+              relationship: tosca.relationships.UsedByService
+      properties:
+          dependencies: org.onosproject.vrouter
+          autogenerate: vrouter-network-cfg
 
     Private:
       type: tosca.nodes.NetworkTemplate
@@ -185,23 +126,17 @@ topology_template:
           no-delete: true
           no-update: true
 
-    #image#vsg-1.0:
-    #  type: tosca.nodes.Image
-
-    image#vAOS-firewall:
+    image#vsg-1.0:
       type: tosca.nodes.Image
 
-    adtran_pod_v2:
+    mysite:
       type: tosca.nodes.Site
 
-    #label_vsg:
-    #  type: tosca.nodes.NodeLabel
-
-    label_vaos:
+    label_vsg:
       type: tosca.nodes.NodeLabel
 
     # Networks required by the CORD setup
-    adtran_pod_v2_vaos-access:
+    mysite_vsg-access:
       type: tosca.nodes.network.Network
       properties:
           ip_version: 4
@@ -210,28 +145,28 @@ topology_template:
               node: Private
               relationship: tosca.relationships.UsesNetworkTemplate
           - owner:
-              node: adtran_pod_v2_vaos
+              node: mysite_vsg
               relationship: tosca.relationships.MemberOfSlice
           - connection:
-              node: adtran_pod_v2_vaos
+              node: mysite_vsg
               relationship: tosca.relationships.ConnectsToSlice
 
     # CORD Slices
-    adtran_pod_v2_vaos:
-      description: vAOS Controller Slice
+    mysite_vsg:
+      description: vSG Controller Slice
       type: tosca.nodes.Slice
       properties:
           network: noauto
       requirements:
           - vsg_service:
-              node: service#vaos
+              node: service#vsg
               relationship: tosca.relationships.MemberOfService
           - site:
-              node: adtran_pod_v2
+              node: mysite
               relationship: tosca.relationships.MemberOfSite
           - management:
               node: management
               relationship: tosca.relationships.ConnectsToNetwork
           - image:
-              node: image#vAOS-firewall
+              node: image#vsg-1.0
               relationship: tosca.relationships.DefaultImage

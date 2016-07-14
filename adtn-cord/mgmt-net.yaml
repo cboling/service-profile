@@ -23,7 +23,7 @@ topology_template:
               node: management_template
               relationship: tosca.relationships.UsesNetworkTemplate
           - owner:
-              node: mysite_management
+              node: adtran_pod_v2_management
               relationship: tosca.relationships.MemberOfSlice
 
     adtran_pod_v2:
@@ -34,6 +34,8 @@ topology_template:
       type: tosca.nodes.Slice
       properties:
           network: noauto
+          # NOTE: Made max_instances 1 (default is 10) so it can run on my devstack setup.
+          max_instances: 1
       requirements:
           - site:
               node: adtran_pod_v2
